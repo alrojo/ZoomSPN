@@ -320,7 +320,7 @@ def main(model='st_cnn', zoom=True, num_epochs=500):
         val_err = 0
         val_acc = 0
         val_batches = 0
-        for batch in iterate_minibatches(X_val_orig, X_train_rescaled_5, X_train_rescaled_25, y_val, 500, shuffle=False):
+        for batch in iterate_minibatches(X_val_orig, X_val_rescaled_5, X_val_rescaled_25, y_val, 500, shuffle=False):
             inputs_orig, inputs_rescaled_5, inputs_rescaled_25, targets = batch
             err, acc = val_fn(inputs_orig, inputs_rescaled_5, inputs_rescaled_25, targets)
             val_err += err
@@ -339,7 +339,7 @@ def main(model='st_cnn', zoom=True, num_epochs=500):
     test_err = 0
     test_acc = 0
     test_batches = 0
-    for batch in iterate_minibatches(X_test_orig, X_train_rescaled_5, X_train_rescaled_25, y_test, 500, shuffle=False):
+    for batch in iterate_minibatches(X_test_orig, X_test_rescaled_5, X_test_rescaled_25, y_test, 500, shuffle=False):
         inputs_orig, inputs_rescaled_5, inputs_rescaled_25, targets = batch
         err, acc = val_fn(inputs_orig, inputs_rescaled_5, inputs_rescaled_25, targets)
         test_err += err
