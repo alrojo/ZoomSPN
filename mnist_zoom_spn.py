@@ -211,15 +211,16 @@ def build_st_cnn_large(input_var_orig=None, input_var_rescaled_5=None, input_var
         l_st_2_2 = lasagne.layers.TransformerLayer(l_st_1, l_dense_st_out_2, downsample_factor=2)
 
     # Convnet
-    l_conv_1_a = lasagne.layers.Conv2DLayer(
+    convnet = lasagne.layers.Conv2DLayer(
             l_st_2_2, num_filters=32, filter_size=(3, 3), pad='same')
-    l_conv_1_b = lasagne.layers.Conv2DLayer(
-            l_conv_1_a, num_filters=32, filter_size=(3, 3), pad='same')
-    l_mp_1 = lasagne.layers.MaxPool2DLayer(l_conv_1_b, pool_size=(2, 2))
-    l_dense_1 = lasagne.layers.DenseLayer(
-            lasagne.layers.dropout(l_mp_1, p=.5), num_units=256)
+    convnet = lasagne.layers.Conv2DLayer(
+            convnet, num_filters=32, filter_size=(3, 3), pad='same')
+    if zoom:
+        convnet = lasagne.layers.MaxPool2DLayer(convnet, pool_size=(2, 2))
+    convnet = lasagne.layers.DenseLayer(
+            lasagne.layers.dropout(convnet, p=.5), num_units=256)
     l_out = lasagne.layers.DenseLayer(
-            lasagne.layers.dropout(l_dense_1, p=.5),
+            lasagne.layers.dropout(convnet, p=.5),
             num_units=10,
             nonlinearity=lasagne.nonlinearities.softmax)
 
