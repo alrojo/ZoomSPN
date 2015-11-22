@@ -37,15 +37,16 @@ def load_dataset():
             data = np.frombuffer(f.read(), np.uint8, offset=16)
         data = data.reshape(-1, 1, 28, 28)
         #############
-        # @@@@@ Making the scaled version for Zooming-SPN @@@@@
+        # @@@@@ Making the scaled version for Zooming-st @@@@@
         #############
         print("Making mnist grid and scaling ...")
         data_orig = np.random.randint(
             low=0, high=255,
-            size=(data.shape[0], data.shape[1], data.shape[2]*2, data.shape[3]*2)).astype('float32')
-        data_rescaled = np.zeros((data.shape[0], data.shape[1], data.shape[2], data.shape[3]), dtype='float32')
+            size=(data.shape[0], data.shape[1], data.shape[2]*4, data.shape[3]*4)).astype('float32')
+        data_rescaled_5 = np.zeros((data.shape[0], data.shape[1], data.shape[2]*2, data.shape[3]*2), dtype='float32')
+        data_rescaled_25 = np.zeros((data.shape[0], data.shape[1], data.shape[2], data.shape[3]), dtype='float32')
         np.random.seed(seed=42)
-        spacing_1_a = np.random.randint(low=0, high=28, size=data.shape[0])
+        spacing_1_a = np.random.randint(low=0, high=data_orig.shape[2]-data.shape[2], size=data.shape[0])
         spacing_1_b = spacing_1_a + data.shape[2]
         np.random.seed(seed=24)
         spacing_2_a = np.random.randint(low=0, high=28, size=data.shape[0])
@@ -54,16 +55,19 @@ def load_dataset():
         data = data.astype('float32') / np.float32(256)
         for i in range(data.shape[0]):
             data_orig[i, :, spacing_1_a[i]:spacing_1_b[i], spacing_2_a[i]:spacing_2_b[i]] = data[i, :, :, :]
-            data_rescaled[i,0,:,:] = transform.resize(data_orig[i,0,:,:], (data.shape[2],data.shape[3]))
+            data_rescaled_5[i,0,:,:] = transform.resize(data_orig[i,0,:,:], (data.shape[2]*2,data.shape[3]*2))            
+            data_rescaled_25[i,0,:,:] = transform.resize(data_orig[i,0,:,:], (data.shape[2],data.shape[3]))
 
-        print("shapes of data_orig and data_rescaled")        
+        print("shapes of data_orig, data_rescaled 50% and data_rescaled 25%")        
         print(data_orig.shape)
-        print(data_rescaled.shape)
+        print(data_rescaled_5.shape)
+        print(data_rescaled_25.shape)
         print("saving images of the grid and rescaled grid ...")
         plt.imsave(fname="orig", arr=data_orig[100,0,:,:], cmap=plt.cm.gray)
-        plt.imsave(fname="rescaled", arr=data_rescaled[100,0,:,:], cmap=plt.cm.gray)
+        plt.imsave(fname="rescaled_5", arr=data_rescaled_5[100,0,:,:], cmap=plt.cm.gray)
+        plt.imsave(fname="rescaled_25", arr=data_rescaled_25[100,0,:,:], cmap=plt.cm.gray)
         print("images saved!")
-        return data_orig, data_rescaled
+        return data_orig, data_rescaled_5, data_rescaled_25
 
     def load_mnist_labels(filename):
         if not os.path.exists(filename):
@@ -72,51 +76,78 @@ def load_dataset():
             data = np.frombuffer(f.read(), np.uint8, offset=8)
         return data
 
-    X_train_orig, X_train_rescaled = load_mnist_images('train-images-idx3-ubyte.gz')
+    X_train_orig, X_train_rescaled_5, X_train_rescaled_25 = load_mnist_images('train-images-idx3-ubyte.gz')
     y_train = load_mnist_labels('train-labels-idx1-ubyte.gz')
-    X_test_orig, X_test_rescaled = load_mnist_images('t10k-images-idx3-ubyte.gz')
+    X_test_orig, X_test_rescaled_5, X_test_rescaled_25 = load_mnist_images('t10k-images-idx3-ubyte.gz')
     y_test = load_mnist_labels('t10k-labels-idx1-ubyte.gz')
 
     X_train_orig, X_val_orig = X_train_orig[:-10000], X_train_orig[-10000:]
-    X_train_rescaled, X_val_rescaled = X_train_rescaled[:-10000], X_train_rescaled[-10000:]
+    X_train_rescaled_5, X_val_rescaled_5 = X_train_rescaled_5[:-10000], X_train_rescaled_5[-10000:]
+    X_train_rescaled_25, X_val_rescaled_25 = X_train_rescaled_25[:-10000], X_train_rescaled_25[-10000:]
     y_train, y_val = y_train[:-10000], y_train[-10000:]
 
-    return X_train_orig, X_train_rescaled, y_train, X_val_orig, X_val_rescaled, y_val, X_test_orig, X_test_rescaled, y_test
+    return X_train_orig, X_train_rescaled_5, X_train_rescaled_25, y_train, X_val_orig, X_val_rescaled_5, X_val_rescaled_25, y_val, X_test_orig, X_test_rescaled_5, X_test_rescaled_25, y_test
 
 
 # ##################### Build the neural network model #######################
-# Builds an spn with option of zooming on the original image
+# Builds an st with option of zooming on the original image
 
 
-def build_spn_cnn(input_var_orig=None, input_var_rescaled=None, zoom=True):
-    # Input images
-    l_in_orig = lasagne.layers.InputLayer(shape=(None, 1, 28*2, 28*2),
+def build_st_cnn(input_var_orig=None, input_var_rescaled_5=None, input_var_rescaled_25=None, zoom=True):
+
+    # Input images in 3 different scale
+    l_in_orig = lasagne.layers.InputLayer(shape=(None, 1, 28*4, 28*4),
                                         input_var=input_var_orig)
 
-    l_in_rescaled = lasagne.layers.InputLayer(shape=(None, 1, 28, 28),
-                                        input_var=input_var_rescaled)
-    # CNN for the SPN
-    l_conv_spn_1_a = lasagne.layers.Conv2DLayer(
-            l_in_rescaled, num_filters=16, filter_size=(3, 3))
-    l_conv_spn_1_b = lasagne.layers.Conv2DLayer(
-            l_conv_spn_1_a, num_filters=32, filter_size=(3, 3))
-    l_mp_spn_1 = lasagne.layers.MaxPool2DLayer(l_conv_spn_1_b, pool_size=(2, 2))
-    l_dense_spn_1 = lasagne.layers.DenseLayer(
-            lasagne.layers.dropout(l_mp_spn_1, p=.5), num_units=128)
-    b = np.zeros((2, 3), dtype='float32')
-    b[0, 0] = 1
-    b[1, 1] = 1
-    b = b.flatten()
-    W = lasagne.init.Constant(0.0)
-    l_dense_spn_out = lasagne.layers.DenseLayer(
-            l_dense_spn_1, num_units=6, W=W, b=b)
+    l_in_rescaled_5 = lasagne.layers.InputLayer(shape=(None, 1, 28*2, 28*2),
+                                        input_var=input_var_rescaled_5)
+    l_in_rescaled_25 = lasagne.layers.InputLayer(shape=(None, 1, 28, 28),
+                                        input_var=input_var_rescaled_25)
+
+    # CNN for the ST_1 - Zooming 50%
+    l_conv_st_1_1_a = lasagne.layers.Conv2DLayer(
+            l_in_rescaled_25, num_filters=16, filter_size=(3, 3), pad='same')
+    l_conv_st_1_1_b = lasagne.layers.Conv2DLayer(
+            l_conv_st_1_1_a, num_filters=32, filter_size=(3, 3), pad='same')
+    l_mp_st_1_1 = lasagne.layers.MaxPool2DLayer(l_conv_st_1_1_b, pool_size=(2, 2))
+    l_dense_st_1_1 = lasagne.layers.DenseLayer(
+            lasagne.layers.dropout(l_mp_st_1_1, p=.5), num_units=128)
+    b_1 = np.zeros((2, 3), dtype='float32')
+    b_1[0, 0] = 1
+    b_1[1, 1] = 1
+    b_1 = b_1.flatten()
+    W_1 = lasagne.init.Constant(0.0)
+    l_dense_st_out_1 = lasagne.layers.DenseLayer(
+            l_dense_st_1_1, num_units=6, W=W_1, b=b_1)
     if zoom:
-        l_spn_1 = lasagne.layers.TransformerLayer(l_in_orig, l_dense_spn_out, downsample_factor=2)
+        l_st_1 = lasagne.layers.TransformerLayer(l_in_rescaled_5, l_dense_st_out_1, downsample_factor=2)
     else:
-        l_spn_1 = lasagne.layers.TransformerLayer(l_in_rescaled, l_dense_spn_out, downsample_factor=2)
-    l_spn_1 = lasagne.layers.TransformerLayer(l_in_orig, l_dense_spn_out, downsample_factor=2)
+        l_st_1 = lasagne.layers.TransformerLayer(l_in_rescaled_25, l_dense_st_out_1, downsample_factor=2)
+
+    # CNN for the ST_2 - Zooming 25%
+    l_conv_st_2_1_a = lasagne.layers.Conv2DLayer(
+            l_st_1, num_filters=16, filter_size=(3, 3), pad='same')
+    l_conv_st_2_1_b = lasagne.layers.Conv2DLayer(
+            l_conv_st_2_1_a, num_filters=32, filter_size=(3, 3), pad='same')
+    l_mp_st_2_1 = lasagne.layers.MaxPool2DLayer(l_conv_st_2_1_b, pool_size=(2, 2))
+    l_dense_st_2_1 = lasagne.layers.DenseLayer(
+            lasagne.layers.dropout(l_mp_st_2_1, p=.5), num_units=128)
+    b_2 = np.zeros((2, 3), dtype='float32')
+    b_2[0, 0] = 1
+    b_2[1, 1] = 1
+    b_2 = b_2.flatten()
+    W_2 = lasagne.init.Constant(0.0)
+    l_dense_st_out_2 = lasagne.layers.DenseLayer(
+            l_dense_st_2_1, num_units=6, W=W_2, b=b_2)
+    if zoom:
+        l_st_2_1 = lasagne.layers.TransformerLayer(l_in_orig, l_dense_st_out_1, downsample_factor=2)
+        l_st_2_2 = lasagne.layers.TransformerLayer(l_st_2_1, l_dense_st_out_2, downsample_factor=2)
+    else:
+        l_st_2_2 = lasagne.layers.TransformerLayer(l_st_1, l_dense_st_out_2, downsample_factor=2)
+
+    # Convnet
     l_conv_1_a = lasagne.layers.Conv2DLayer(
-            l_spn_1, num_filters=16, filter_size=(3, 3))
+            l_st_2_2, num_filters=16, filter_size=(3, 3))
     l_conv_1_b = lasagne.layers.Conv2DLayer(
             l_conv_1_a, num_filters=32, filter_size=(3, 3))
     l_mp_1 = lasagne.layers.MaxPool2DLayer(l_conv_1_b, pool_size=(2, 2))
@@ -128,36 +159,62 @@ def build_spn_cnn(input_var_orig=None, input_var_rescaled=None, zoom=True):
             nonlinearity=lasagne.nonlinearities.softmax)
     return l_out
 
-def build_spn_cnn_large(input_var_orig=None, input_var_rescaled=None, zoom=True):
-    # Input images
-    l_in_orig = lasagne.layers.InputLayer(shape=(None, 1, 28*2, 28*2),
+def build_st_cnn_large(input_var_orig=None, input_var_rescaled_5=None, input_var_rescaled_25=None, zoom=True):
+    # Input images in 3 different scale
+    l_in_orig = lasagne.layers.InputLayer(shape=(None, 1, 28*4, 28*4),
                                         input_var=input_var_orig)
 
-    l_in_rescaled = lasagne.layers.InputLayer(shape=(None, 1, 28, 28),
-                                        input_var=input_var_rescaled)
-    # CNN for the SPN
-    l_conv_spn_1_a = lasagne.layers.Conv2DLayer(
-            l_in_rescaled, num_filters=32, filter_size=(3, 3))
-    l_conv_spn_1_b = lasagne.layers.Conv2DLayer(
-            l_conv_spn_1_a, num_filters=32, filter_size=(3, 3))
-    l_mp_spn_1 = lasagne.layers.MaxPool2DLayer(l_conv_spn_1_b, pool_size=(2, 2))
-    l_dense_spn_1 = lasagne.layers.DenseLayer(
-            lasagne.layers.dropout(l_mp_spn_1, p=.5), num_units=256)
-    b = np.zeros((2, 3), dtype='float32')
-    b[0, 0] = 1
-    b[1, 1] = 1
-    b = b.flatten()
-    W = lasagne.init.Constant(0.0)
-    l_dense_spn_out = lasagne.layers.DenseLayer(
-            l_dense_spn_1, num_units=6, W=W, b=b)
+    l_in_rescaled_5 = lasagne.layers.InputLayer(shape=(None, 1, 28*2, 28*2),
+                                        input_var=input_var_rescaled_5)
+    l_in_rescaled_25 = lasagne.layers.InputLayer(shape=(None, 1, 28, 28),
+                                        input_var=input_var_rescaled_25)
+
+    # CNN for the ST_1 - Zooming 50%
+    l_conv_st_1_1_a = lasagne.layers.Conv2DLayer(
+            l_in_rescaled_25, num_filters=32, filter_size=(3, 3), pad='same')
+    l_conv_st_1_1_b = lasagne.layers.Conv2DLayer(
+            l_conv_st_1_1_a, num_filters=32, filter_size=(3, 3), pad='same')
+    l_mp_st_1_1 = lasagne.layers.MaxPool2DLayer(l_conv_st_1_1_b, pool_size=(2, 2))
+    l_dense_st_1_1 = lasagne.layers.DenseLayer(
+            lasagne.layers.dropout(l_mp_st_1_1, p=.5), num_units=256)
+    b_1 = np.zeros((2, 3), dtype='float32')
+    b_1[0, 0] = 1
+    b_1[1, 1] = 1
+    b_1 = b_1.flatten()
+    W_1 = lasagne.init.Constant(0.0)
+    l_dense_st_out_1 = lasagne.layers.DenseLayer(
+            l_dense_st_1_1, num_units=6, W=W_1, b=b_1)
     if zoom:
-        l_spn_1 = lasagne.layers.TransformerLayer(l_in_orig, l_dense_spn_out, downsample_factor=2)
+        l_st_1 = lasagne.layers.TransformerLayer(l_in_rescaled_5, l_dense_st_out_1, downsample_factor=2)
     else:
-        l_spn_1 = lasagne.layers.TransformerLayer(l_in_rescaled, l_dense_spn_out, downsample_factor=2)
+        l_st_1 = lasagne.layers.TransformerLayer(l_in_rescaled_25, l_dense_st_out_1, downsample_factor=2)
+
+    # CNN for the ST_2 - Zooming 25%
+    l_conv_st_2_1_a = lasagne.layers.Conv2DLayer(
+            l_st_1, num_filters=32, filter_size=(3, 3), pad='same')
+    l_conv_st_2_1_b = lasagne.layers.Conv2DLayer(
+            l_conv_st_2_1_a, num_filters=32, filter_size=(3, 3), pad='same')
+    l_mp_st_2_1 = lasagne.layers.MaxPool2DLayer(l_conv_st_2_1_b, pool_size=(2, 2))
+    l_dense_st_2_1 = lasagne.layers.DenseLayer(
+            lasagne.layers.dropout(l_mp_st_2_1, p=.5), num_units=256)
+    b_2 = np.zeros((2, 3), dtype='float32')
+    b_2[0, 0] = 1
+    b_2[1, 1] = 1
+    b_2 = b_2.flatten()
+    W_2 = lasagne.init.Constant(0.0)
+    l_dense_st_out_2 = lasagne.layers.DenseLayer(
+            l_dense_st_2_1, num_units=6, W=W_2, b=b_2)
+    if zoom:
+        l_st_2_1 = lasagne.layers.TransformerLayer(l_in_orig, l_dense_st_out_1, downsample_factor=2)
+        l_st_2_2 = lasagne.layers.TransformerLayer(l_st_2_1, l_dense_st_out_2, downsample_factor=2)
+    else:
+        l_st_2_2 = lasagne.layers.TransformerLayer(l_st_1, l_dense_st_out_2, downsample_factor=2)
+
+    # Convnet
     l_conv_1_a = lasagne.layers.Conv2DLayer(
-            l_spn_1, num_filters=32, filter_size=(3, 3))
+            l_st_2_2, num_filters=32, filter_size=(3, 3), pad='same')
     l_conv_1_b = lasagne.layers.Conv2DLayer(
-            l_conv_1_a, num_filters=64, filter_size=(3, 3))
+            l_conv_1_a, num_filters=32, filter_size=(3, 3), pad='same')
     l_mp_1 = lasagne.layers.MaxPool2DLayer(l_conv_1_b, pool_size=(2, 2))
     l_dense_1 = lasagne.layers.DenseLayer(
             lasagne.layers.dropout(l_mp_1, p=.5), num_units=256)
@@ -165,11 +222,13 @@ def build_spn_cnn_large(input_var_orig=None, input_var_rescaled=None, zoom=True)
             lasagne.layers.dropout(l_dense_1, p=.5),
             num_units=10,
             nonlinearity=lasagne.nonlinearities.softmax)
+
     return l_out
 
-def iterate_minibatches(inputs_orig, inputs_rescaled, targets, batchsize, shuffle=False):
+def iterate_minibatches(inputs_orig, inputs_rescaled_5, inputs_rescaled_25, targets, batchsize, shuffle=False):
     assert len(inputs_orig) == len(targets)
-    assert len(inputs_rescaled) == len(targets)
+    assert len(inputs_rescaled_5) == len(targets)
+    assert len(inputs_rescaled_25) == len(targets)
     if shuffle:
         indices = np.arange(len(inputs_orig))
         np.random.shuffle(indices)
@@ -178,7 +237,7 @@ def iterate_minibatches(inputs_orig, inputs_rescaled, targets, batchsize, shuffl
             excerpt = indices[start_idx:start_idx + batchsize]
         else:
             excerpt = slice(start_idx, start_idx + batchsize)
-        yield inputs_orig[excerpt], inputs_rescaled[excerpt], targets[excerpt]
+        yield inputs_orig[excerpt], inputs_rescaled_5[excerpt], inputs_rescaled_25[excerpt], targets[excerpt]
 
 
 # ############################## Main program ################################
@@ -186,20 +245,21 @@ def iterate_minibatches(inputs_orig, inputs_rescaled, targets, batchsize, shuffl
 # more functions to better separate the code, but it wouldn't make it any
 # easier to read.
 
-def main(model='spn_cnn', zoom=True, num_epochs=500):
+def main(model='st_cnn', zoom=True, num_epochs=500):
     print("Loading data...")
-    X_train_orig, X_train_rescaled, y_train, X_val_orig, X_val_rescaled, y_val, X_test_orig, X_test_rescaled, y_test = load_dataset()
+    X_train_orig, X_train_rescaled_5, X_train_rescaled_25, y_train, X_val_orig, X_val_rescaled_5, X_val_rescaled_25, y_val, X_test_orig, X_test_rescaled_5, X_test_rescaled_25, y_test = load_dataset()
 
     input_var_orig = T.tensor4('inputs_orig')
-    input_var_rescaled = T.tensor4('inputs_rescaled')
+    input_var_rescaled_5 = T.tensor4('inputs_rescaled_5')
+    input_var_rescaled_25 = T.tensor4('inputs_rescaled_25')
     target_var = T.ivector('targets')
 
     print("Building model and compiling functions...")
 
-    if model == 'spn_cnn':
-        l_out = build_spn_cnn(input_var_orig, input_var_rescaled, zoom)
-    elif model == 'spn_cnn_large':
-        l_out = build_spn_cnn_large(input_var_orig, input_var_rescaled, zoom)     
+    if model == 'st_cnn':
+        l_out = build_st_cnn(input_var_orig, input_var_rescaled_5, input_var_rescaled_25, zoom)
+    elif model == 'st_cnn_large':
+        l_out = build_st_cnn_large(input_var_orig, input_var_rescaled_5, input_var_rescaled_25, zoom)
     else:
         print("Unrecognized model type %r." % model)
         return
@@ -237,10 +297,10 @@ def main(model='spn_cnn', zoom=True, num_epochs=500):
 
     # Compile a function performing a training step on a mini-batch (by giving
     # the updates dictionary) and returning the corresponding training loss:
-    train_fn = theano.function([input_var_orig, input_var_rescaled, target_var], loss, updates=updates, on_unused_input='ignore')
+    train_fn = theano.function([input_var_orig, input_var_rescaled_5, input_var_rescaled_25, target_var], loss, updates=updates, on_unused_input='ignore')
 
     # Compile a second function computing the validation loss and accuracy:
-    val_fn = theano.function([input_var_orig, input_var_rescaled, target_var], [test_loss, test_acc], on_unused_input='ignore')
+    val_fn = theano.function([input_var_orig, input_var_rescaled_5, input_var_rescaled_25, target_var], [test_loss, test_acc], on_unused_input='ignore')
 
     # Finally, launch the training loop.
     print("Starting training...")
@@ -250,7 +310,7 @@ def main(model='spn_cnn', zoom=True, num_epochs=500):
         train_err = 0
         train_batches = 0
         start_time = time.time()
-        for batch in iterate_minibatches(X_train_orig, X_train_rescaled, y_train, 500, shuffle=True):
+        for batch in iterate_minibatches(X_train_orig, X_train_rescaled_5, X_train_rescaled_25, y_train, 500, shuffle=True):
             inputs_orig, inputs_rescaled, targets = batch
             train_err += train_fn(inputs_orig, inputs_rescaled, targets)
             train_batches += 1
@@ -259,7 +319,7 @@ def main(model='spn_cnn', zoom=True, num_epochs=500):
         val_err = 0
         val_acc = 0
         val_batches = 0
-        for batch in iterate_minibatches(X_val_orig, X_val_rescaled, y_val, 500, shuffle=False):
+        for batch in iterate_minibatches(X_val_orig, X_train_rescaled_5, X_train_rescaled_25, y_val, 500, shuffle=False):
             inputs_orig, inputs_rescaled, targets = batch
             err, acc = val_fn(inputs_orig, inputs_rescaled, targets)
             val_err += err
@@ -278,7 +338,7 @@ def main(model='spn_cnn', zoom=True, num_epochs=500):
     test_err = 0
     test_acc = 0
     test_batches = 0
-    for batch in iterate_minibatches(X_test_orig, X_test_rescaled, y_test, 500, shuffle=False):
+    for batch in iterate_minibatches(X_test_orig, X_train_rescaled_5, X_train_rescaled_25, y_test, 500, shuffle=False):
         inputs_orig, inputs_rescaled, targets = batch
         err, acc = val_fn(inputs_orig, inputs_rescaled, targets)
         test_err += err
@@ -294,9 +354,9 @@ if __name__ == '__main__':
         print("Trains a neural network on MNIST using Lasagne.")
         print("Usage: %s [MODEL [EPOCHS]]" % sys.argv[0])
         print()
-        print("MODEL: 'spn_cnn' for a small spn_cnn (default: spn_cnn)")
-        print("       'spn_cnn_large' for a large spn_cnn")
-        print("ZOOM:  '1' for a zoom_spn_cnn or '0' for std. spn_cnn (default: 1)")
+        print("MODEL: 'st_cnn' for a small st_cnn (default: st_cnn)")
+        print("       'st_cnn_large' for a large st_cnn")
+        print("ZOOM:  '1' for a zoom_st_cnn or '0' for std. st_cnn (default: 1)")
         print("EPOCHS: number of training epochs to perform (default: 500)")
     else:
         kwargs = {}
