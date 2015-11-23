@@ -55,6 +55,7 @@ print max1.shape
 
 skim1 = ndimage.zoom(whale, [.5, .5, 1])
 print skim1.shape
+plt.imsave(fname="skim1", arr=skim1)
 sys.exit()
 #skim2 = transform.resize(whale, (whale[0]/4, whale[1]/4, 3))
 #skim3 = transform.resize(whale, (whale[0]/8, whale[1]/8, 3))
