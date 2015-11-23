@@ -28,8 +28,8 @@ def doMaxPool(im):
     f1 = theano.function([input_var], out1)
     f2 = theano.function([input_var], out2)
     
-    im1 = f1(im)[-1]    
-    im2 = f2(im)[-1]
+    im1 = f1(im)    
+    im2 = f2(im)
     return im1, im2
 
 # ########################### Getting the data #############################
@@ -84,10 +84,10 @@ def load_dataset():
         print("saving images of the grid and rescaled grid using skimage ...")
         plt.imsave(fname="skimage_rescaled_5", arr=data_rescaled_5[100,0,:,:], cmap=plt.cm.gray)
         plt.imsave(fname="skimage_rescaled_25", arr=data_rescaled_25[100,0,:,:], cmap=plt.cm.gray)
-        im1, im2 = doMaxPool(data_orig[0:101,0,:,:])
+        im1, im2 = doMaxPool(data_orig[0:101,:,:,:])
         print("saving images of the grid and rescaled grid using MaxPool ...")
-        plt.imsave(fname="MaxPool_rescaled_5", arr=im1, cmap=plt.cm.gray)
-        plt.imsave(fname="MaxPool_rescaled_25", arr=im2, cmap=plt.cm.gray)
+        plt.imsave(fname="MaxPool_rescaled_5", arr=im1[100,0,:,:], cmap=plt.cm.gray)
+        plt.imsave(fname="MaxPool_rescaled_25", arr=im2[100,0,:,:], cmap=plt.cm.gray)
         print("images saved!")
         return data_orig, data_rescaled_5, data_rescaled_25
 
