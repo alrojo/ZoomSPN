@@ -24,37 +24,43 @@ def doMaxPool(im):
     l_mp_3 = lasagne.layers.MaxPool2DLayer(l_mp_2, pool_size=(2,2))
     l_mp_4 = lasagne.layers.MaxPool2DLayer(l_mp_3, pool_size=(2,2))
     l_mp_5 = lasagne.layers.MaxPool2DLayer(l_mp_4, pool_size=(2,2))
+    l_mp_6 = lasagne.layers.MaxPool2DLayer(l_mp_5, pool_size=(2,2))
 
     l_dim1 = lasagne.layers.DimshuffleLayer(l_mp_1, (2, 3, 1))
     l_dim2 = lasagne.layers.DimshuffleLayer(l_mp_2, (2, 3, 1))
     l_dim3 = lasagne.layers.DimshuffleLayer(l_mp_3, (2, 3, 1))
     l_dim4 = lasagne.layers.DimshuffleLayer(l_mp_4, (2, 3, 1))
     l_dim5 = lasagne.layers.DimshuffleLayer(l_mp_5, (2, 3, 1))
+    l_dim6 = lasagne.layers.DimshuffleLayer(l_mp_6, (2, 3, 1))
+
     out1 = lasagne.layers.get_output(l_dim1, input_var)
     out2 = lasagne.layers.get_output(l_dim2, input_var)
     out3 = lasagne.layers.get_output(l_dim3, input_var)
     out4 = lasagne.layers.get_output(l_dim4, input_var)
     out5 = lasagne.layers.get_output(l_dim5, input_var)
+    out6 = lasagne.layers.get_output(l_dim6, input_var)
 
     f1 = theano.function([input_var], out1)
     f2 = theano.function([input_var], out2)
     f3 = theano.function([input_var], out3)
     f4 = theano.function([input_var], out4)
     f5 = theano.function([input_var], out5)
+    f6 = theano.function([input_var], out6)
 
     im1 = f1(im)    
     im2 = f2(im)
     im3 = f3(im)    
     im4 = f4(im)
     im5 = f5(im)
-    return im1, im2, im3, im4, im5
+    im6 = f6(im)
+    return im1, im2, im3, im4, im5, im6
 
 whale = imread('w_7489.jpg')
 
 whale = whale[:,0:2048,:]
 
 print "Computing maxpools ..."
-max1, max2, max3, max4, max5 = doMaxPool(whale)
+max1, max2, max3, max4, max5, max6 = doMaxPool(whale)
 
 print "Computing scipy zooms ..."
 skim1 = ndimage.zoom(whale, [.5, .5, 1])
@@ -62,7 +68,7 @@ skim2 = ndimage.zoom(whale, [.25, .25, 1])
 skim3 = ndimage.zoom(whale, [.125, .125, 1])
 skim4 = ndimage.zoom(whale, [.0625, .0625, 1])
 skim5 = ndimage.zoom(whale, [.03125, .03125, 1])
-
+skim6 = ndimage.zoom(whale, [.015625, .015625, 1])
 # Only works for gray scale, not N dimentional.
 #skim1 = transform.resize(whale, (whale[0]/2, whale[1]/2, 3))
 #skim2 = transform.resize(whale, (whale[0]/4, whale[1]/4, 3))
@@ -86,6 +92,9 @@ im128[:,128:,:] = max4
 im64 = np.zeros((64, 128, 3), dtype=whale.dtype)
 im64[:,0:64,:] = skim5
 im64[:,64:,:] = max5
+im32 = np.zeros((32, 64, 3), dtype=whale.dtype)
+im32[:, 0:32,:] = skim6
+im32[:, 32:, :] = max6
 
 print "Saving all images ..."
 plt.imsave(fname="whale_1024", arr=im1024)
@@ -93,4 +102,5 @@ plt.imsave(fname="whale_512", arr=im512)
 plt.imsave(fname="whale_256", arr=im256)
 plt.imsave(fname="whale_128", arr=im128)
 plt.imsave(fname="whale_64", arr=im64)
+plt.imsave(fname="whale_32", arr=im32)
 print "Images saved!!!"
