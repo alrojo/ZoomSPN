@@ -18,7 +18,8 @@ def doMaxPool(im):
     input_var = T.tensor4('input_variable')
     l_in_orig = lasagne.layers.InputLayer(shape=(None, 1, 28*4, 28*4),
                                         input_var=input_var)
-    l_mp_1 = lasagne.layers.MaxPool2DLayer(l_in_orig, pool_size=(2,2))
+    l_dim = lasagne.layers.DimshuffleLayer(l_in_orig, ('x', 3, 1, 2))
+    l_mp_1 = lasagne.layers.MaxPool2DLayer(l_dim, pool_size=(2,2))
     l_mp_2 = lasagne.layers.MaxPool2DLayer(l_mp_1, pool_size=(2,2))
     l_mp_3 = lasagne.layers.MaxPool2DLayer(l_mp_2, pool_size=(2,2))
     l_mp_4 = lasagne.layers.MaxPool2DLayer(l_mp_3, pool_size=(2,2))
@@ -49,7 +50,8 @@ print whale.shape
 whale = whale[:,0:2048,:]
 print whale.shape
 
-max1, max2, max3, max4, max5 = doMaxPool(np.expand_dims(np.reshape(whale,(3,1,2)), axis=0))
+max1, max2, max3, max4, max5 = doMaxPool(whale)
+print max1.shape
 sys.exit()
 skim1 = transform.resize(whale, (whale[0]/2, whale[1]/2))
 skim2 = transform.resize(whale, (whale[0]/4, whale[1]/4))
