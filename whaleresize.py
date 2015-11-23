@@ -51,35 +51,28 @@ def doMaxPool(im):
 
 whale = imread('w_7489.jpg')
 
-print whale.shape
 whale = whale[:,0:2048,:]
-print whale.shape
 
+print "Computing maxpools ..."
 max1, max2, max3, max4, max5 = doMaxPool(whale)
-print max1.shape
 
+print "Computing scipy zooms ..."
 skim1 = ndimage.zoom(whale, [.5, .5, 1])
-print skim1.shape
-print "Saving images!"
-plt.imsave(fname="orig", arr=whale)
-plt.imsave(fname="skim1", arr=skim1)
-plt.imsave(fname="max1", arr=max1)
-sys.exit()
-#skim2 = transform.resize(whale, (whale[0]/4, whale[1]/4, 3))
-#skim3 = transform.resize(whale, (whale[0]/8, whale[1]/8, 3))
-#skim4 = transform.resize(whale, (whale[0]/16, whale[1]/16, 3))
-#skim5 = transform.resize(whale, (whale[0]/32, whale[1]/32, 3))
+skim2 = ndimage.zoom(whale, [.25, .25, 1])
+skim3 = ndimage.zoom(whale, [.125, .125, 1])
+skim4 = ndimage.zoom(whale, [.0625, .0625, 1])
+skim5 = ndimage.zoom(whale, [.03125, .03125, 1])
 
+# Only works for gray scale, not N dimentional.
 #skim1 = transform.resize(whale, (whale[0]/2, whale[1]/2, 3))
 #skim2 = transform.resize(whale, (whale[0]/4, whale[1]/4, 3))
 #skim3 = transform.resize(whale, (whale[0]/8, whale[1]/8, 3))
 #skim4 = transform.resize(whale, (whale[0]/16, whale[1]/16, 3))
 #skim5 = transform.resize(whale, (whale[0]/32, whale[1]/32, 3))
 
-sys.exit()
-
+print "Concatting images ..."
 im1024 = np.zeros((1024, 2048, 3), dtype=whale.dtype)
-im1024[:,0:1024,3] = skim1 
+im1024[:,0:1024,3] = skim1
 im1024[:,1024:,3] = max1
 im512 = np.zeros((512, 1024, 3), dtype=whale.dtype)
 im512[:,0:512,3] = skim2 
@@ -91,9 +84,13 @@ im128 = np.zeros((128, 256, 3), dtype=whale.dtype)
 im128[:,0:128,3] = skim4
 im128[:,128:,3] = max4
 im64 = np.zeros((64, 128, 3), dtype=whale.dtype)
+im64[:,0:128,3] = skim5
+im64[:,128:,3] = max5
 
-plt.imsave(fname="whale_1024", arr=whale)
-plt.imsave(fname="whale_512", arr=whale)
-plt.imsave(fname="whale_256", arr=whale)
-plt.imsave(fname="whale_128", arr=whale)
-plt.imsave(fname="whale_64", arr=whale)
+print "Saving all images ..."
+plt.imsave(fname="whale_1024", arr=im1024)
+plt.imsave(fname="whale_512", arr=im512)
+plt.imsave(fname="whale_256", arr=im256)
+plt.imsave(fname="whale_128", arr=im128)
+plt.imsave(fname="whale_64", arr=im64)
+print "Images saved!!!"
