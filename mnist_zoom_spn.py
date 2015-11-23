@@ -93,6 +93,81 @@ def load_dataset():
 # Builds an st with option of zooming on the original image
 
 
+def build_st_cnn_large(input_var_orig=None, input_var_rescaled_5=None, input_var_rescaled_25=None, zoom=True):
+
+    # Input images in 3 different scale
+    l_in_orig = lasagne.layers.InputLayer(shape=(None, 1, 28*4, 28*4),
+                                        input_var=input_var_orig)
+
+    l_in_rescaled_5 = lasagne.layers.InputLayer(shape=(None, 1, 28*2, 28*2),
+                                        input_var=input_var_rescaled_5)
+    l_in_rescaled_25 = lasagne.layers.InputLayer(shape=(None, 1, 28, 28),
+                                        input_var=input_var_rescaled_25)
+
+    # CNN for the ST_1 - Zooming 50%
+    if zoom:
+        l_conv_st_1_1_a = lasagne.layers.Conv2DLayer(
+                l_in_rescaled_25, num_filters=32, filter_size=(3, 3), pad='same')
+    else:
+        l_pool_st_1_1_a = lasagne.layers.MaxPool2DLayer(l_in_orig, pool_size=(2, 2))
+        l_pool_st_1_1_b = lasagne.layers.MaxPool2DLayer(l_pool_st_1_1_a, pool_size=(2, 2))        
+        l_conv_st_1_1_a = lasagne.layers.Conv2DLayer(
+                l_pool_st_1_1_b, num_filters=32, filter_size=(3, 3), pad='same')        
+    l_conv_st_1_1_b = lasagne.layers.Conv2DLayer(
+            l_conv_st_1_1_a, num_filters=32, filter_size=(3, 3), pad='same')
+    l_mp_st_1_1 = lasagne.layers.MaxPool2DLayer(l_conv_st_1_1_b, pool_size=(2, 2))
+    l_dense_st_1_1 = lasagne.layers.DenseLayer(
+            lasagne.layers.dropout(l_mp_st_1_1, p=.5), num_units=256)
+    b_1 = np.zeros((2, 3), dtype='float32')
+    b_1[0, 0] = 1
+    b_1[1, 1] = 1
+    b_1 = b_1.flatten()
+    W_1 = lasagne.init.Constant(0.0)
+    l_dense_st_out_1 = lasagne.layers.DenseLayer(
+            l_dense_st_1_1, num_units=6, W=W_1, b=b_1)
+    if zoom:
+        l_st_1 = lasagne.layers.TransformerLayer(l_in_rescaled_5, l_dense_st_out_1, downsample_factor=2)
+        l_conv_st_2_1_a = lasagne.layers.Conv2DLayer(
+            l_st_1, num_filters=32, filter_size=(3, 3), pad='same')
+    else:
+        l_st_1 = lasagne.layers.TransformerLayer(l_in_orig, l_dense_st_out_1, downsample_factor=2)
+        l_pool_st_1_1_a = lasagne.layers.MaxPool2DLayer(l_st_1, pool_size=(2, 2))
+        l_conv_st_2_1_a = lasagne.layers.Conv2DLayer(
+            l_pool_st_1_1_a, num_filters=32, filter_size=(3, 3), pad='same')
+
+    # CNN for the ST_2 - Zooming 25%    
+    l_conv_st_2_1_b = lasagne.layers.Conv2DLayer(
+            l_conv_st_2_1_a, num_filters=32, filter_size=(3, 3), pad='same')
+    l_mp_st_2_1 = lasagne.layers.MaxPool2DLayer(l_conv_st_2_1_b, pool_size=(2, 2))
+    l_dense_st_2_1 = lasagne.layers.DenseLayer(
+            lasagne.layers.dropout(l_mp_st_2_1, p=.5), num_units=256)
+    b_2 = np.zeros((2, 3), dtype='float32')
+    b_2[0, 0] = 1
+    b_2[1, 1] = 1
+    b_2 = b_2.flatten()
+    W_2 = lasagne.init.Constant(0.0)
+    l_dense_st_out_2 = lasagne.layers.DenseLayer(
+            l_dense_st_2_1, num_units=6, W=W_2, b=b_2)
+    if zoom:
+        l_st_2_1 = lasagne.layers.TransformerLayer(l_in_orig, l_dense_st_out_1, downsample_factor=2)
+        l_st_2_2 = lasagne.layers.TransformerLayer(l_st_2_1, l_dense_st_out_2, downsample_factor=2)
+    else:
+        l_st_2_2 = lasagne.layers.TransformerLayer(l_st_1, l_dense_st_out_2, downsample_factor=2)
+
+    # Convnet
+    convnet = lasagne.layers.Conv2DLayer(
+            l_st_2_2, num_filters=32, filter_size=(3, 3), pad='same')
+    convnet = lasagne.layers.Conv2DLayer(
+            convnet, num_filters=32, filter_size=(3, 3), pad='same')
+    convnet = lasagne.layers.MaxPool2DLayer(convnet, pool_size=(2, 2))
+    convnet = lasagne.layers.DenseLayer(
+            lasagne.layers.dropout(convnet, p=.5), num_units=256)
+    l_out = lasagne.layers.DenseLayer(
+            convnet,
+            num_units=10,
+            nonlinearity=lasagne.nonlinearities.softmax)
+    return l_out
+
 def build_st_cnn(input_var_orig=None, input_var_rescaled_5=None, input_var_rescaled_25=None, zoom=True):
 
     # Input images in 3 different scale
@@ -127,12 +202,15 @@ def build_st_cnn(input_var_orig=None, input_var_rescaled_5=None, input_var_resca
             l_dense_st_1_1, num_units=6, W=W_1, b=b_1)
     if zoom:
         l_st_1 = lasagne.layers.TransformerLayer(l_in_rescaled_5, l_dense_st_out_1, downsample_factor=2)
+        l_conv_st_2_1_a = lasagne.layers.Conv2DLayer(
+            l_st_1, num_filters=16, filter_size=(3, 3), pad='same')
     else:
         l_st_1 = lasagne.layers.TransformerLayer(l_in_orig, l_dense_st_out_1, downsample_factor=2)
         l_pool_st_1_1_a = lasagne.layers.MaxPool2DLayer(l_st_1, pool_size=(2, 2))
-    # CNN for the ST_2 - Zooming 25%
-    l_conv_st_2_1_a = lasagne.layers.Conv2DLayer(
+        l_conv_st_2_1_a = lasagne.layers.Conv2DLayer(
             l_pool_st_1_1_a, num_filters=16, filter_size=(3, 3), pad='same')
+
+    # CNN for the ST_2 - Zooming 25%    
     l_conv_st_2_1_b = lasagne.layers.Conv2DLayer(
             l_conv_st_2_1_a, num_filters=32, filter_size=(3, 3), pad='same')
     l_mp_st_2_1 = lasagne.layers.MaxPool2DLayer(l_conv_st_2_1_b, pool_size=(2, 2))
@@ -159,77 +237,6 @@ def build_st_cnn(input_var_orig=None, input_var_rescaled_5=None, input_var_resca
     convnet = lasagne.layers.MaxPool2DLayer(convnet, pool_size=(2, 2))
     convnet = lasagne.layers.DenseLayer(
             lasagne.layers.dropout(convnet, p=.5), num_units=128)
-    l_out = lasagne.layers.DenseLayer(
-            lasagne.layers.dropout(convnet, p=.5),
-            num_units=10,
-            nonlinearity=lasagne.nonlinearities.softmax)
-    return l_out
-
-def build_st_cnn_large(input_var_orig=None, input_var_rescaled_5=None, input_var_rescaled_25=None, zoom=True):
-    # Input images in 3 different scale
-    l_in_orig = lasagne.layers.InputLayer(shape=(None, 1, 28*4, 28*4),
-                                        input_var=input_var_orig)
-
-    l_in_rescaled_5 = lasagne.layers.InputLayer(shape=(None, 1, 28*2, 28*2),
-                                        input_var=input_var_rescaled_5)
-    l_in_rescaled_25 = lasagne.layers.InputLayer(shape=(None, 1, 28, 28),
-                                        input_var=input_var_rescaled_25)
-
-    # CNN for the ST_1 - Zooming 50%
-    if zoom:
-        l_conv_st_1_1_a = lasagne.layers.Conv2DLayer(
-                l_in_rescaled_25, num_filters=16, filter_size=(3, 3), pad='same')
-    else:
-        l_pool_st_1_1_a = lasagne.layers.MaxPool2DLayer(l_in_orig, pool_size=(2, 2))
-        l_pool_st_1_1_b = lasagne.layers.MaxPool2DLayer(l_pool_st_1_1_a, pool_size=(2, 2))        
-        l_conv_st_1_1_a = lasagne.layers.Conv2DLayer(
-                l_pool_st_1_1_b, num_filters=32, filter_size=(3, 3), pad='same')        
-    l_conv_st_1_1_b = lasagne.layers.Conv2DLayer(
-            l_conv_st_1_1_a, num_filters=32, filter_size=(3, 3), pad='same')
-    l_mp_st_1_1 = lasagne.layers.MaxPool2DLayer(l_conv_st_1_1_b, pool_size=(2, 2))
-    l_dense_st_1_1 = lasagne.layers.DenseLayer(
-            lasagne.layers.dropout(l_mp_st_1_1, p=.5), num_units=256)
-    b_1 = np.zeros((2, 3), dtype='float32')
-    b_1[0, 0] = 1
-    b_1[1, 1] = 1
-    b_1 = b_1.flatten()
-    W_1 = lasagne.init.Constant(0.0)
-    l_dense_st_out_1 = lasagne.layers.DenseLayer(
-            l_dense_st_1_1, num_units=6, W=W_1, b=b_1)
-    if zoom:
-        l_st_1 = lasagne.layers.TransformerLayer(l_in_rescaled_5, l_dense_st_out_1, downsample_factor=2)
-    else:
-        l_st_1 = lasagne.layers.TransformerLayer(l_in_orig, l_dense_st_out_1, downsample_factor=2)
-        l_pool_st_1_1_a = lasagne.layers.MaxPool2DLayer(l_st_1, pool_size=(2, 2))
-    # CNN for the ST_2 - Zooming 25%
-    l_conv_st_2_1_a = lasagne.layers.Conv2DLayer(
-            l_pool_st_1_1_a, num_filters=32, filter_size=(3, 3), pad='same')
-    l_conv_st_2_1_b = lasagne.layers.Conv2DLayer(
-            l_conv_st_2_1_a, num_filters=32, filter_size=(3, 3), pad='same')
-    l_mp_st_2_1 = lasagne.layers.MaxPool2DLayer(l_conv_st_2_1_b, pool_size=(2, 2))
-    l_dense_st_2_1 = lasagne.layers.DenseLayer(
-            lasagne.layers.dropout(l_mp_st_2_1, p=.5), num_units=256)
-    b_2 = np.zeros((2, 3), dtype='float32')
-    b_2[0, 0] = 1
-    b_2[1, 1] = 1
-    b_2 = b_2.flatten()
-    W_2 = lasagne.init.Constant(0.0)
-    l_dense_st_out_2 = lasagne.layers.DenseLayer(
-            l_dense_st_2_1, num_units=6, W=W_2, b=b_2)
-    if zoom:
-        l_st_2_1 = lasagne.layers.TransformerLayer(l_in_orig, l_dense_st_out_1, downsample_factor=2)
-        l_st_2_2 = lasagne.layers.TransformerLayer(l_st_2_1, l_dense_st_out_2, downsample_factor=2)
-    else:
-        l_st_2_2 = lasagne.layers.TransformerLayer(l_st_1, l_dense_st_out_2, downsample_factor=2)
-
-    # Convnet
-    convnet = lasagne.layers.Conv2DLayer(
-            l_st_2_2, num_filters=32, filter_size=(3, 3), pad='same')
-    convnet = lasagne.layers.Conv2DLayer(
-            convnet, num_filters=32, filter_size=(3, 3), pad='same')
-    convnet = lasagne.layers.MaxPool2DLayer(convnet, pool_size=(2, 2))
-    convnet = lasagne.layers.DenseLayer(
-            lasagne.layers.dropout(convnet, p=.5), num_units=256)
     l_out = lasagne.layers.DenseLayer(
             lasagne.layers.dropout(convnet, p=.5),
             num_units=10,
