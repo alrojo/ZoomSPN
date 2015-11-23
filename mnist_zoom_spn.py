@@ -15,6 +15,23 @@ import matplotlib.pyplot as plt
 import lasagne
 import string
 
+def doMaxPool(im):
+    input_var = T.tensor4('input_variable')
+    l_in_orig = lasagne.layers.InputLayer(shape=(None, 1, 28*4, 28*4),
+                                        input_var=input_var)
+    l_mp_1 = lasagne.layers.MaxPool2DLayer(l_in_orig, pool_size=(2,2))
+    l_mp_2 = lasagne.layers.MaxPool2DLayer(l_mp_1, pool_size=(2,2))
+    
+    out1 = lasagne.layers.get_output(l_mp_1, input_var)
+    out2 = lasagne.layers.get_output(l_mp_2, input_var)
+    
+    f1 = theano.function([input_var], out1)
+    f2 = theano.function([input_var], out2)
+    
+    im1 = f1(im)[-1]    
+    im2 = f2(im)[-1]
+    return im1, im2
+
 # ########################### Getting the data #############################
 # Downloads and modifies the MNIST to be a noise grid of twice it's size 
 # with Mnist numbers randomly placed on the grid
@@ -62,10 +79,15 @@ def load_dataset():
         print(data_orig.shape)
         print(data_rescaled_5.shape)
         print(data_rescaled_25.shape)
-        print("saving images of the grid and rescaled grid ...")
-        plt.imsave(fname="orig", arr=data_orig[100,0,:,:], cmap=plt.cm.gray)
-        plt.imsave(fname="rescaled_5", arr=data_rescaled_5[100,0,:,:], cmap=plt.cm.gray)
-        plt.imsave(fname="rescaled_25", arr=data_rescaled_25[100,0,:,:], cmap=plt.cm.gray)
+        print("saving original image ...")
+        plt.imsave(fname="skimage_orig", arr=data_orig[100,0,:,:], cmap=plt.cm.gray)
+        print("saving images of the grid and rescaled grid using skimage ...")
+        plt.imsave(fname="skimage_rescaled_5", arr=data_rescaled_5[100,0,:,:], cmap=plt.cm.gray)
+        plt.imsave(fname="skimage_rescaled_25", arr=data_rescaled_25[100,0,:,:], cmap=plt.cm.gray)
+        im1, im2 = doMaxPool(data_orig[0:101,0,:,:])
+        print("saving images of the grid and rescaled grid using MaxPool ...")
+        plt.imsave(fname="MaxPool_rescaled_5", arr=im1, cmap=plt.cm.gray)
+        plt.imsave(fname="MaxPool_rescaled_25", arr=im2, cmap=plt.cm.gray)
         print("images saved!")
         return data_orig, data_rescaled_5, data_rescaled_25
 
@@ -93,7 +115,7 @@ def load_dataset():
 # Builds an st with option of zooming on the original image
 
 
-def build_st_cnn_large(input_var_orig=None, input_var_rescaled_5=None, input_var_rescaled_25=None, zoom=True):
+def build_st_cnn_large(input_var_orig=None, input_var_rescaled_5=None, input_var_rescaled_25=None, zoom=True, dbl_calc=True):
 
     # Input images in 3 different scale
     l_in_orig = lasagne.layers.InputLayer(shape=(None, 1, 28*4, 28*4),
@@ -168,12 +190,11 @@ def build_st_cnn_large(input_var_orig=None, input_var_rescaled_5=None, input_var
             nonlinearity=lasagne.nonlinearities.softmax)
     return l_out
 
-def build_st_cnn(input_var_orig=None, input_var_rescaled_5=None, input_var_rescaled_25=None, zoom=True):
+def build_st_cnn(input_var_orig=None, input_var_rescaled_5=None, input_var_rescaled_25=None, zoom=True, dbl_calc=True):
 
     # Input images in 3 different scale
     l_in_orig = lasagne.layers.InputLayer(shape=(None, 1, 28*4, 28*4),
                                         input_var=input_var_orig)
-
     l_in_rescaled_5 = lasagne.layers.InputLayer(shape=(None, 1, 28*2, 28*2),
                                         input_var=input_var_rescaled_5)
     l_in_rescaled_25 = lasagne.layers.InputLayer(shape=(None, 1, 28, 28),
@@ -227,7 +248,11 @@ def build_st_cnn(input_var_orig=None, input_var_rescaled_5=None, input_var_resca
         l_st_2_1 = lasagne.layers.TransformerLayer(l_in_orig, l_dense_st_out_1, downsample_factor=2)
         l_st_2_2 = lasagne.layers.TransformerLayer(l_st_2_1, l_dense_st_out_2, downsample_factor=2)
     else:
-        l_st_2_2 = lasagne.layers.TransformerLayer(l_st_1, l_dense_st_out_2, downsample_factor=2)
+        if dbl_calc == True:
+            l_st_2_1 = lasagne.layers.TransformerLayer(l_in_orig, l_dense_st_out_1, downsample_factor=2)
+            l_st_2_2 = lasagne.layers.TransformerLayer(l_st_2_1, l_dense_st_out_2, downsample_factor=2)
+        else:
+            l_st_2_2 = lasagne.layers.TransformerLayer(l_st_1, l_dense_st_out_2, downsample_factor=2)
 
     # Convnet
     convnet = lasagne.layers.Conv2DLayer(
@@ -263,7 +288,7 @@ def iterate_minibatches(inputs_orig, inputs_rescaled_5, inputs_rescaled_25, targ
 # more functions to better separate the code, but it wouldn't make it any
 # easier to read.
 
-def main(model='st_cnn', zoom=True, num_epochs=500):
+def main(model='st_cnn', zoom=True, num_epochs=500, dbl_calc=True):
     print("Loading data...")
     X_train_orig, X_train_rescaled_5, X_train_rescaled_25, y_train, X_val_orig, X_val_rescaled_5, X_val_rescaled_25, y_val, X_test_orig, X_test_rescaled_5, X_test_rescaled_25, y_test = load_dataset()
 
@@ -275,9 +300,9 @@ def main(model='st_cnn', zoom=True, num_epochs=500):
     print("Building model and compiling functions...")
 
     if model == 'st_cnn':
-        l_out = build_st_cnn(input_var_orig, input_var_rescaled_5, input_var_rescaled_25, zoom)
+        l_out = build_st_cnn(input_var_orig, input_var_rescaled_5, input_var_rescaled_25, zoom, dbl_calc)
     elif model == 'st_cnn_large':
-        l_out = build_st_cnn_large(input_var_orig, input_var_rescaled_5, input_var_rescaled_25, zoom)
+        l_out = build_st_cnn_large(input_var_orig, input_var_rescaled_5, input_var_rescaled_25, zoom, dbl_calc)
     else:
         print("Unrecognized model type %r." % model)
         return
@@ -376,6 +401,7 @@ if __name__ == '__main__':
         print("       'st_cnn_large' for a large st_cnn")
         print("ZOOM:  '1' for a zoom_st_cnn or '0' for std. st_cnn (default: 1)")
         print("EPOCHS: number of training epochs to perform (default: 500)")
+        print("DBL_CALC: Should the gradient run twice to first A matrice(only applicable for no zoom)? (default: 1)")
     else:
         kwargs = {}
         if len(sys.argv) > 1:
@@ -384,4 +410,6 @@ if __name__ == '__main__':
             kwargs['zoom'] = bool(int(sys.argv[2]))
         if len(sys.argv) > 3:
             kwargs['num_epochs'] = int(sys.argv[3])
+        if len(sys.argv) > 4:
+            kwargs['dbl_calc'] = bool(int(sys.argv[2]))
         main(**kwargs)
