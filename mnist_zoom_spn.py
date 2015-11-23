@@ -129,10 +129,10 @@ def build_st_cnn(input_var_orig=None, input_var_rescaled_5=None, input_var_resca
         l_st_1 = lasagne.layers.TransformerLayer(l_in_rescaled_5, l_dense_st_out_1, downsample_factor=2)
     else:
         l_st_1 = lasagne.layers.TransformerLayer(l_in_orig, l_dense_st_out_1, downsample_factor=2)
-        l_st_1 = lasagne.layers.MaxPool2DLayer(l_st_1, pool_size=(2, 2))
+        l_pool_st_1_1_a = lasagne.layers.MaxPool2DLayer(l_st_1, pool_size=(2, 2))
     # CNN for the ST_2 - Zooming 25%
     l_conv_st_2_1_a = lasagne.layers.Conv2DLayer(
-            l_st_1, num_filters=16, filter_size=(3, 3), pad='same')
+            l_pool_st_1_1_a, num_filters=16, filter_size=(3, 3), pad='same')
     l_conv_st_2_1_b = lasagne.layers.Conv2DLayer(
             l_conv_st_2_1_a, num_filters=32, filter_size=(3, 3), pad='same')
     l_mp_st_2_1 = lasagne.layers.MaxPool2DLayer(l_conv_st_2_1_b, pool_size=(2, 2))
