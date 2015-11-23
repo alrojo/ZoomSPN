@@ -46,10 +46,11 @@ def doMaxPool(im):
 whale = imread('w_7489.jpg')
 
 print whale.shape
-
-sys.exit()
+whale = whale[:,0:2048,:]
+print whale.shape
 
 max1, max2, max3, max4, max5 = doMaxPool(whale)
+sys.exit()
 skim1 = transform.resize(whale, (whale[0]/2, whale[1]/2))
 skim2 = transform.resize(whale, (whale[0]/4, whale[1]/4))
 skim3 = transform.resize(whale, (whale[0]/8, whale[1]/8))
@@ -66,8 +67,8 @@ im256 = np.zeros((256, 512, 3), dtype=whale.dtype)
 im256[:,0:256,3] = skim3
 im256[:,256:,3] = max3
 im128 = np.zeros((128, 256, 3), dtype=whale.dtype)
-im128[:,0:512,3] = skim3
-im128 = [:,512:,3] = max3
+im128[:,0:128,3] = skim4
+im128[:,128:,3] = max4
 im64 = np.zeros((64, 128, 3), dtype=whale.dtype)
 
 plt.imsave(fname="whale_1024", arr=whale)
