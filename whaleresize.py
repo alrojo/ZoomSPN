@@ -7,7 +7,7 @@ Created on Mon Nov 23 14:20:44 2015
 import lasagne
 import theano
 import theano.tensor as T
-from skimage import transform
+from skimage import ndimage
 from skimage.io import imread
 import matplotlib.pyplot as plt
 import numpy as np
@@ -53,11 +53,19 @@ print whale.shape
 max1, max2, max3, max4, max5 = doMaxPool(whale)
 print max1.shape
 
-skim1 = transform.resize(whale, (whale[0]/2, whale[1]/2, 3))
-skim2 = transform.resize(whale, (whale[0]/4, whale[1]/4, 3))
-skim3 = transform.resize(whale, (whale[0]/8, whale[1]/8, 3))
-skim4 = transform.resize(whale, (whale[0]/16, whale[1]/16, 3))
-skim5 = transform.resize(whale, (whale[0]/32, whale[1]/32, 3))
+skim1 = ndimage.zoom(whale, 1./2.)
+print skim1.shape
+sys.exit()
+#skim2 = transform.resize(whale, (whale[0]/4, whale[1]/4, 3))
+#skim3 = transform.resize(whale, (whale[0]/8, whale[1]/8, 3))
+#skim4 = transform.resize(whale, (whale[0]/16, whale[1]/16, 3))
+#skim5 = transform.resize(whale, (whale[0]/32, whale[1]/32, 3))
+
+#skim1 = transform.resize(whale, (whale[0]/2, whale[1]/2, 3))
+#skim2 = transform.resize(whale, (whale[0]/4, whale[1]/4, 3))
+#skim3 = transform.resize(whale, (whale[0]/8, whale[1]/8, 3))
+#skim4 = transform.resize(whale, (whale[0]/16, whale[1]/16, 3))
+#skim5 = transform.resize(whale, (whale[0]/32, whale[1]/32, 3))
 
 sys.exit()
 
