@@ -49,7 +49,7 @@ print whale.shape
 whale = whale[:,0:2048,:]
 print whale.shape
 
-max1, max2, max3, max4, max5 = doMaxPool(whale)
+max1, max2, max3, max4, max5 = doMaxPool(np.expand_dims(np.reshape(whale,(3,1,2)), axis=0))
 sys.exit()
 skim1 = transform.resize(whale, (whale[0]/2, whale[1]/2))
 skim2 = transform.resize(whale, (whale[0]/4, whale[1]/4))
