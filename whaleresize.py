@@ -72,20 +72,20 @@ skim5 = ndimage.zoom(whale, [.03125, .03125, 1])
 
 print "Concatting images ..."
 im1024 = np.zeros((1024, 2048, 3), dtype=whale.dtype)
-im1024[:,0:1024,3] = skim1
-im1024[:,1024:,3] = max1
+im1024[:,0:1024,:] = skim1
+im1024[:,1024:,:] = max1
 im512 = np.zeros((512, 1024, 3), dtype=whale.dtype)
-im512[:,0:512,3] = skim2 
-im512[:,512:,3] = max2
+im512[:,0:512,:] = skim2 
+im512[:,512:,:] = max2
 im256 = np.zeros((256, 512, 3), dtype=whale.dtype)
-im256[:,0:256,3] = skim3
-im256[:,256:,3] = max3
+im256[:,0:256,:] = skim3
+im256[:,256:,:] = max3
 im128 = np.zeros((128, 256, 3), dtype=whale.dtype)
-im128[:,0:128,3] = skim4
-im128[:,128:,3] = max4
+im128[:,0:128,:] = skim4
+im128[:,128:,:] = max4
 im64 = np.zeros((64, 128, 3), dtype=whale.dtype)
-im64[:,0:128,3] = skim5
-im64[:,128:,3] = max5
+im64[:,0:64,:] = skim5
+im64[:,64:,:] = max5
 
 print "Saving all images ..."
 plt.imsave(fname="whale_1024", arr=im1024)
