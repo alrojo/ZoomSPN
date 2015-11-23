@@ -120,7 +120,6 @@ def build_st_cnn_large(input_var_orig=None, input_var_rescaled_5=None, input_var
     # Input images in 3 different scale
     l_in_orig = lasagne.layers.InputLayer(shape=(None, 1, 28*4, 28*4),
                                         input_var=input_var_orig)
-
     l_in_rescaled_5 = lasagne.layers.InputLayer(shape=(None, 1, 28*2, 28*2),
                                         input_var=input_var_rescaled_5)
     l_in_rescaled_25 = lasagne.layers.InputLayer(shape=(None, 1, 28, 28),
@@ -174,7 +173,11 @@ def build_st_cnn_large(input_var_orig=None, input_var_rescaled_5=None, input_var
         l_st_2_1 = lasagne.layers.TransformerLayer(l_in_orig, l_dense_st_out_1, downsample_factor=2)
         l_st_2_2 = lasagne.layers.TransformerLayer(l_st_2_1, l_dense_st_out_2, downsample_factor=2)
     else:
-        l_st_2_2 = lasagne.layers.TransformerLayer(l_st_1, l_dense_st_out_2, downsample_factor=2)
+        if dbl_calc == True:
+            l_st_2_1 = lasagne.layers.TransformerLayer(l_in_orig, l_dense_st_out_1, downsample_factor=2)
+            l_st_2_2 = lasagne.layers.TransformerLayer(l_st_2_1, l_dense_st_out_2, downsample_factor=2)
+        else:
+            l_st_2_2 = lasagne.layers.TransformerLayer(l_st_1, l_dense_st_out_2, downsample_factor=2)
 
     # Convnet
     convnet = lasagne.layers.Conv2DLayer(
@@ -183,9 +186,9 @@ def build_st_cnn_large(input_var_orig=None, input_var_rescaled_5=None, input_var
             convnet, num_filters=32, filter_size=(3, 3), pad='same')
     convnet = lasagne.layers.MaxPool2DLayer(convnet, pool_size=(2, 2))
     convnet = lasagne.layers.DenseLayer(
-            lasagne.layers.dropout(convnet, p=.5), num_units=256)
+            lasagne.layers.dropout(convnet, p=.5), num_units=258)
     l_out = lasagne.layers.DenseLayer(
-            convnet,
+            lasagne.layers.dropout(convnet, p=.5),
             num_units=10,
             nonlinearity=lasagne.nonlinearities.softmax)
     return l_out
