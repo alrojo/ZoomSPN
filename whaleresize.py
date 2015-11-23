@@ -25,11 +25,16 @@ def doMaxPool(im):
     l_mp_4 = lasagne.layers.MaxPool2DLayer(l_mp_3, pool_size=(2,2))
     l_mp_5 = lasagne.layers.MaxPool2DLayer(l_mp_4, pool_size=(2,2))
 
-    out1 = lasagne.layers.get_output(l_mp_1, input_var)
-    out2 = lasagne.layers.get_output(l_mp_2, input_var)
-    out3 = lasagne.layers.get_output(l_mp_3, input_var)
-    out4 = lasagne.layers.get_output(l_mp_4, input_var)
-    out5 = lasagne.layers.get_output(l_mp_5, input_var)
+    l_dim1 = lasagne.layers.DimshuffleLayer(l_mp_1, (2, 3, 1))
+    l_dim2 = lasagne.layers.DimshuffleLayer(l_mp_2, (2, 3, 1))
+    l_dim3 = lasagne.layers.DimshuffleLayer(l_mp_3, (2, 3, 1))
+    l_dim4 = lasagne.layers.DimshuffleLayer(l_mp_4, (2, 3, 1))
+    l_dim5 = lasagne.layers.DimshuffleLayer(l_mp_5, (2, 3, 1))
+    out1 = lasagne.layers.get_output(l_dim1, input_var)
+    out2 = lasagne.layers.get_output(l_dim2, input_var)
+    out3 = lasagne.layers.get_output(l_dim3, input_var)
+    out4 = lasagne.layers.get_output(l_dim4, input_var)
+    out5 = lasagne.layers.get_output(l_dim5, input_var)
 
     f1 = theano.function([input_var], out1)
     f2 = theano.function([input_var], out2)
@@ -55,7 +60,10 @@ print max1.shape
 
 skim1 = ndimage.zoom(whale, [.5, .5, 1])
 print skim1.shape
+print "Saving images!"
+plt.imsave(fname="orig", arr=whale)
 plt.imsave(fname="skim1", arr=skim1)
+plt.imsave(fname="max1", arr=max1)
 sys.exit()
 #skim2 = transform.resize(whale, (whale[0]/4, whale[1]/4, 3))
 #skim3 = transform.resize(whale, (whale[0]/8, whale[1]/8, 3))
