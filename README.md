@@ -13,7 +13,7 @@ Either it uses maxpooling to device three different sizes of the mnist variant, 
 
 Secondly, whaleresize.py will try take a 2048x2048 image of a whale and rescale it using maxpool and scipy for illustrating the difference between the algorithms.
 Here are a few examples, which illustrates how maxpool performs whose the more severe the scaling is.
-![alt text](https://github.com/alrojo/ZoomSPN/whale_1024.jpg "downscaling with a factor of 2 - from 2048 to 1024")
-![alt text](https://github.com/alrojo/ZoomSPN/whale_1024.jpg "downscaling with a factor of 8 - from 2048 to 256")
-![alt text](https://github.com/alrojo/ZoomSPN/whale_1024.jpg "downscaling with a factor of 32 - from 2048 to 64")
-![alt text](https://github.com/alrojo/ZoomSPN/whale_1024.jpg "downscaling with a factor of 64 - from 2048 to 32")
+![alt text](https://github.com/alrojo/ZoomSPN/blob/master/whale_1024.png "downscaling with a factor of 2 - from 2048 to 1024")
+![alt text](https://github.com/alrojo/ZoomSPN/blob/master/whale_256.png "downscaling with a factor of 8 - from 2048 to 256")
+![alt text](https://github.com/alrojo/ZoomSPN/blob/master/whale_64.png "downscaling with a factor of 32 - from 2048 to 64")
+![alt text](https://github.com/alrojo/ZoomSPN/blob/master/whale_32.png "downscaling with a factor of 64 - from 2048 to 32")
