@@ -115,6 +115,29 @@ def load_dataset():
 # Builds an st with option of zooming on the original image
 
 
+def build_test(input_var_orig=None, input_var_rescaled_5=None, input_var_rescaled_25=None):
+    # Input images in 3 different scale
+    l_in_orig = lasagne.layers.InputLayer(shape=(None, 1, 28*4, 28*4),
+                                        input_var=input_var_orig)
+    l_in_rescaled_5 = lasagne.layers.InputLayer(shape=(None, 1, 28*2, 28*2),
+                                        input_var=input_var_rescaled_5)
+    l_in_rescaled_25 = lasagne.layers.InputLayer(shape=(None, 1, 28, 28),
+                                        input_var=input_var_rescaled_25)
+    layers_before = [l_in_orig, l_in_rescaled_5, l_in_rescaled_25]
+    layers_after = []
+    for l in layers_before:
+        conv1 = lasagne.layers.Conv2DLayer(
+            l, num_filters=8, filter_size=(3, 3), pad='same')
+        conv2 = lasagne.layers.Conv2DLayer(
+            conv1, num_filters=8, filter_size=(3, 3), pad='same')
+        layers_after.append(conv2)
+    l_concat = lasagne.layers.ConcatLayer(layers_after, axis=2)
+    l_dense = lasagne.layers.DenseLayer(l_concat, num_units=200)
+    l_out = lasagne.layers.DenseLayer(l_dense,
+            num_units=10,
+            nonlinearity=lasagne.nonlinearities.softmax)
+    return l_out
+
 def build_st_cnn_large(input_var_orig=None, input_var_rescaled_5=None, input_var_rescaled_25=None, zoom=True, dbl_calc=True):
 
     # Input images in 3 different scale
