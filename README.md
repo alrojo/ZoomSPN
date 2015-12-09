@@ -19,11 +19,11 @@ Here are a few examples, which illustrates how maxpool performs whose the more s
 #### Downscaling with a factor of 2 - from 2048 to 1024(scipy left, maxpool right)
 ![alt text](https://github.com/alrojo/ZoomSPN/blob/master/whale_1024.png "downscaling with a factor of 2 - from 2048 to 1024")
 
-#### Downscaling with a factor of 2 - from 2048 to 1024(scipy left, maxpool right)
+#### Downscaling with a factor of 8 - from 2048 to 256(scipy left, maxpool right)
 ![alt text](https://github.com/alrojo/ZoomSPN/blob/master/whale_256.png "downscaling with a factor of 8 - from 2048 to 256")
 
-#### Downscaling with a factor of 2 - from 2048 to 1024(scipy left, maxpool right)
+#### Downscaling with a factor of 32 - from 2048 to 64(scipy left, maxpool right)
 ![alt text](https://github.com/alrojo/ZoomSPN/blob/master/whale_64.png "downscaling with a factor of 32 - from 2048 to 64")
 
-#### Downscaling with a factor of 2 - from 2048 to 1024(scipy left, maxpool right)
+#### Downscaling with a factor of 64 - from 2048 to 32(scipy left, maxpool right)
 ![alt text](https://github.com/alrojo/ZoomSPN/blob/master/whale_32.png "downscaling with a factor of 64 - from 2048 to 32")
