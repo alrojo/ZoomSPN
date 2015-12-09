@@ -329,6 +329,8 @@ def main(model='st_cnn', zoom=True, num_epochs=500, dbl_calc=True):
         l_out = build_st_cnn(input_var_orig, input_var_rescaled_5, input_var_rescaled_25, zoom, dbl_calc)
     elif model == 'st_cnn_large':
         l_out = build_st_cnn_large(input_var_orig, input_var_rescaled_5, input_var_rescaled_25, zoom, dbl_calc)
+    elif model == 'test':
+        l_out = build_test(input_var_orig, input_var_rescaled_5, input_var_rescaled_25)    
     else:
         print("Unrecognized model type %r." % model)
         return
